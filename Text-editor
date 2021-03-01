@@ -1,0 +1,160 @@
+/*
+ * display all products in the database that satisfy the search
+ * parameters specified by the program user.
+ */
+
+#include<stdio.h>
+#include<string.h>
+
+#define min_stock 1111  /* minimum stock number */
+#define max_stock 9999  /* maximum stock number */
+#define str_siz 80      /* maximum product price */
+#define max_prize 1000.00  /* number of characters in a string */
+
+typedef struct {      /* product structure type */
+    int stock_num;    /* stock number */
+    char category[str_siz];
+    char tech_descript[str_siz];
+    double price ;
+} product_t;
+
+typedef struct {      /* search parameter bounds type */
+    int low_stock, high_stock;
+    char low_category[str_siz],high_category[str_siz];
+    char low_tech_descript[str_siz], high_tech_descript[str_siz];
+    double low_price, high_price;
+} search_params_t;
+
+search_params_t get_params(void);
+void display_match(FILE *database, search_params_t params);
+
+/* insert prototypes of functions needed by get_params and display_match */
+
+int main()
+{
+    char inv_filename[str_siz];  /* name of inventory file */
+    FILE *inventoryp;           /* inventory file pointer */
+    search_params_t params;    /* search parameter bounds */
+
+    /* get name of. inventory file and open it */
+    printf("enter name of the inventory file>");
+    scanf("%s",inv_filename);
+    inventoryp = fopen(inv_filename, "tb");
+
+    /* get the search parameters */
+    params = get_params();
+
+    /* display all products that satisfy the search parameters */
+    display_match(inventoryp, params);
+
+    return 0;
+}
+
+
+/*
+ * prompts the user to enter the search parameters
+ */
+
+/*
+ * display a lettered menu with the current values of search parameters,
+ * returns the letter the user enters. A letter in the range a..h selects
+ * a parameter to change; q quits, accepting search parameters shown.
+ * post: first non whitespace character entered is returned
+ */
+
+
+char menu_choose(search_params_t params) /* input - current search parameter bounds */
+{
+    char choice ;
+    printf("select by letter a search parameter to set or enter");
+    printf("q to\n accept parameter shown.\n\n");
+    printf("   search parameter              ");
+    printf("current value\n\n");
+    printf("[a]  low bound for stock number          %4d\n  ",params.low_stock);
+    printf("[b]  High bound for stock number         %4d\n",params.high_stock);
+    printf("[c]  low bound for category              %s\n",params.low_category);
+    printf("[d]  high bound for category             %s\n",params.high_category);
+    printf("[e]  low bound for technical description             %s\n",params.low_tech_descript);
+    printf("[f]  high bound for technical description             %s\n",params.high_tech_descript);
+    printf("[g]  low bound for price             %7.2f\n",params.low_price);
+    printf("[h]. high bound for price.           %7.2f\n ",params.high_price);
+    printf("\n");
+    printf("selection>");
+    scanf("%c",&choice);
+    return(choice);
+}
+
+/*
+ * determines whether record prod satisfies all search parameters
+ */
+
+int match(product_t prod,  /* input - record to check */
+          search_params_t params)  /* input - parameters to satisfy */
+{
+    return( strcmp(params.low_category, prod.category) <= 0 &&
+            strcmp(prod.category, params.high_category) <= 0 &&
+            strcmp(params.low_tech_descript, prod.tech_descript) <= 0 &&
+            strcmp(prod.tech_descript, params.high_tech_descript) <= 0 &&
+            params.low_price <=prod.price && prod.price<= params.high_price);
+}
+
+/*
+ * *** stub ***
+ * display each field of prod.
+ * leave a blank line after the product
+ * display.
+ */
+
+
+void show(product_t prod)
+{
+    printf("function show entered with product number %d\n",prod.stock_num);
+}
+
+/*
+ * display records of all products in the inventory that satisfy search
+ * parameters.
+ * pre: database accesses a binary file of product_t record that has
+ *       been opened as an input file, and params is defined.
+ */
+
+
+void display_match(FILE *database, /* file pointer to binary
+                                     database file */
+                   search_params_t params)  /* input - search parameter bounds */
+{
+    product_t next_prod; /* current product from database */
+    int no_match = 1;   /* flag indicating if no matches have been found */
+    int status;        /* input file status */
+
+    /* advances to first record with a stock number greater than or
+     * equal to lower bound.
+     */
+
+    for( status = fread(&next_prod, sizeof(product_t),1,database);
+            status == 1 && params.low_stock > next_prod.stock_num;
+            status = fread(&next_prod, sizeof(product_t),1,database)) {}
+
+    /* display a list of the products that satisfy the search
+     * parameters .
+     */
+
+    printf("\n products satisfying the search parameter:");
+    while(next_prod.stock_num <= params.high_stock && status ==1)
+    {
+        if(match(next_prod,params)) {
+            no_match = 0;
+            show(next_prod);
+        }
+
+        status = fread(&next_prod, sizeof(product_t),1,database);
+    }
+
+    /* display a message if no products found */
+
+    if(no_match)
+        printf("sorry,no products available \n");
+
+
+}
+    
